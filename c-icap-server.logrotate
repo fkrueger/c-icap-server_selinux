@@ -1,0 +1,11 @@
+/var/log/c-icap*.log /var/log/c-icap/c-icap*.log {
+	rotate 52
+	weekly
+	compress
+	notifempty
+	missingok
+	postrotate
+		systemctl reload c-icap-server.service
+	endscript
+	create 0664 c-icap c-icap
+}

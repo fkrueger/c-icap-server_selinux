@@ -1,0 +1,189 @@
+policy_module(cicap, 20210711.1.1)
+
+require {
+	type antivirus_t;
+	type antivirus_var_run_t;
+	type init_t;
+	type setfiles_t;
+	type tmp_t;
+	type setroubleshootd_t;
+	type unconfined_t;
+	type unconfined_service_t;
+	class udp_socket { connect create getattr read setopt write };					# clamd UDP
+	class tcp_socket { accept bind connect create getattr listen name_bind read setopt write };	# clamd TCP and c-icap TCP
+	class fifo_file { open read write };								# clamd.sock
+#	class capability net_admin;
+}
+
+type cicap_t;
+type cicap_exec_t;
+type cicap_port_t;
+
+type cicap_bin_t;
+type cicap_conf_t;
+type cicap_log_t;
+type cicap_tmp_t;
+type cicap_var_run_t;
+
+define(`cicap_all_types',`{ cicap_t cicap_exec_t cicap_bin_t cicap_conf_t cicap_log_t cicap_tmp_t cicap_var_run_t }')
+
+
+corenet_port(cicap_port_t)
+
+init_daemon_domain(cicap_t, cicap_exec_t)
+filetrans_pattern(cicap_t, tmp_t, cicap_tmp_t, file)							# make our files in /var/tmp our own.
+
+#permissive cicap_t;
+
+## DEBUGGING:
+# echo "XX0"; make -f /usr/share/selinux/devel/Makefile
+# echo "XX1"; semanage port -d -t cicap_port_t -p tcp 1344; semodule -r cicap
+# echo "XX2"; semodule -i /root/selinux/cicap/cicap.pp; semanage port -a -t cicap_port_t -p tcp 1344; restorecon -vR /etc/ /run/ /tmp/ /usr/ /var/log/ /var/run/ /var/tmp/
+# echo "XX3"; service c-icap-server stop; rm -f /var/log/audit/audit.log; service auditd restart; service c-icap-server start
+# echo "XX4"; audit2allow -Ri /var/log/audit/audit.log >/root/x; vi /root/x
+##
+
+
+
+
+# filesystems
+fs_associate(cicap_bin_t)
+fs_associate(cicap_conf_t)
+fs_associate(cicap_exec_t)
+fs_associate(cicap_log_t)
+fs_associate(cicap_tmp_t)
+fs_associate(cicap_var_run_t)
+fs_associate_tmpfs(cicap_var_run_t)
+
+# clamdaccess via tcp_socket
+allow cicap_t self:tcp_socket { accept bind create getattr listen read setopt write };
+sssd_read_public_files(cicap_t)
+sssd_search_lib(cicap_t)
+
+
+fs_exec_tmpfs_files(cicap_t)
+fs_getattr_tmpfs(cicap_t)
+fs_manage_tmpfs_dirs(cicap_t)
+fs_manage_tmpfs_files(cicap_t)
+
+# c-icap.sock/ctl/pid
+manage_fifo_files_pattern(cicap_t, cicap_var_run_t, cicap_var_run_t)
+
+## perms for clamav/clamd via fifo_file / socket
+
+allow antivirus_t cicap_tmp_t:file { getattr open read };
+fs_associate_tmpfs(antivirus_var_run_t)
+search_dirs_pattern(cicap_t, antivirus_var_run_t, antivirus_var_run_t)
+getattr_files_pattern(cicap_t, antivirus_var_run_t, antivirus_var_run_t)
+read_files_pattern(cicap_t, antivirus_var_run_t, antivirus_var_run_t)
+write_sock_files_pattern(cicap_t, antivirus_var_run_t, antivirus_var_run_t)
+antivirus_stream_connect(cicap_t)
+
+## cicap_t defaults
+
+search_dirs_pattern(cicap_t, cicap_conf_t, cicap_conf_t)
+read_files_pattern(cicap_t, cicap_conf_t, cicap_conf_t)
+
+manage_files_pattern(cicap_t, cicap_log_t, cicap_log_t)
+
+rw_dirs_pattern(cicap_t, cicap_tmp_t, cicap_tmp_t)
+manage_dirs_pattern(cicap_t, cicap_tmp_t, cicap_tmp_t)
+manage_files_pattern(cicap_t, cicap_tmp_t, cicap_tmp_t)
+
+manage_files_pattern(cicap_t, cicap_var_run_t, cicap_var_run_t)
+
+getattr_dirs_pattern(cicap_t, var_run_t, var_run_t)
+search_dirs_pattern(cicap_t, var_run_t, var_run_t)
+read_fifo_files_pattern(cicap_t, var_run_t, var_run_t)
+create_fifo_files_pattern(cicap_t, var_run_t, var_run_t)
+manage_files_pattern(cicap_t, var_run_t, var_run_t)
+files_rw_pid_dirs(cicap_t)
+
+manage_fifo_files_pattern(cicap_t, cicap_var_run_t, cicap_var_run_t)
+
+
+# network perms
+allow cicap_t cicap_port_t:tcp_socket { accept bind connect create getattr listen name_bind read setopt write };
+allow cicap_t cicap_port_t:udp_socket { connect create getattr read setopt write };
+allow cicap_t self:udp_socket { connect create getattr read setopt write };
+
+corenet_tcp_bind_generic_node(cicap_t)
+corenet_tcp_connect_clamd_port(cicap_t)
+
+# other perms
+sysnet_read_config(cicap_t)
+
+
+
+# sys admin and service perms
+## setroubleshootd_t
+getattr_dirs_pattern(setroubleshootd_t, cicap_all_types, cicap_all_types)
+search_dirs_pattern(setroubleshootd_t, cicap_all_types, cicap_all_types)
+getattr_files_pattern(setroubleshootd_t, cicap_all_types, cicap_all_types)
+read_files_pattern(setroubleshootd_t, cicap_all_types, cicap_all_types)
+
+## init_t
+manage_dirs_pattern(init_t, cicap_all_types, cicap_all_types)
+manage_files_pattern(init_t, cicap_all_types, cicap_all_types)
+manage_lnk_files_pattern(init_t, cicap_all_types, cicap_all_types)
+
+## setfiles_t (ie. restorecon)
+list_dirs_pattern(setfiles_t, cicap_all_types, cicap_all_types)
+
+# relabelfrom:
+relabelfrom_dirs_pattern(setfiles_t, cicap_all_types, cicap_all_types)
+relabelfrom_files_pattern(setfiles_t, cicap_all_types, cicap_all_types)
+relabelfrom_fifo_files_pattern(setfiles_t, cicap_all_types, cicap_all_types)
+relabelfrom_lnk_files_pattern(setfiles_t, cicap_all_types, cicap_all_types)
+relabelfrom_sock_files_pattern(setfiles_t, cicap_all_types, cicap_all_types)
+
+# relabelto:
+relabelto_dirs_pattern(setfiles_t, cicap_all_types, cicap_all_types)
+relabelto_files_pattern(setfiles_t, cicap_all_types, cicap_all_types)
+relabelto_fifo_files_pattern(setfiles_t, cicap_all_types, cicap_all_types)
+relabelto_lnk_files_pattern(setfiles_t, cicap_all_types, cicap_all_types)
+relabelto_sock_files_pattern(setfiles_t, cicap_all_types, cicap_all_types)
+
+## unconfined_t
+allow unconfined_t cicap_all_types:{dir file} { relabelfrom relabelto };
+manage_dirs_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+exec_files_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+manage_files_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+manage_lnk_files_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+
+# relabelfrom:
+relabelfrom_dirs_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+relabelfrom_files_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+relabelfrom_fifo_files_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+relabelfrom_lnk_files_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+relabelfrom_sock_files_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+
+# relabelto:
+relabelto_dirs_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+relabelto_files_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+relabelto_fifo_files_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+relabelto_lnk_files_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+relabelto_sock_files_pattern(unconfined_t, cicap_all_types, cicap_all_types)
+
+
+## unconfined_service_t
+manage_dirs_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+exec_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+manage_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+manage_lnk_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+
+# relabelfrom:
+relabelfrom_dirs_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+relabelfrom_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+relabelfrom_fifo_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+relabelfrom_lnk_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+relabelfrom_sock_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+
+# relabelto:
+relabelto_dirs_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+relabelto_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+relabelto_fifo_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+relabelto_lnk_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+relabelto_sock_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+
+

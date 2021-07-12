@@ -1,0 +1,12 @@
+/etc/c-icap(/.*)?				gen_context(system_u:object_r:cicap_conf_t,s0)
+/etc/c-icap.magic([^/]*)?			gen_context(system_u:object_r:cicap_conf_t,s0)
+/etc/c-icap.conf([^/]*)?			gen_context(system_u:object_r:cicap_conf_t,s0)
+/usr/bin/c-icap([^/]*)?				gen_context(system_u:object_r:cicap_exec_t,s0)
+/usr/sbin/c-icap				gen_context(system_u:object_r:cicap_exec_t,s0)
+
+/var/log/c-icap(/.*\.log)?			gen_context(system_u:object_r:cicap_log_t,s0)
+/var/log/c-icap.*\.log			--	gen_context(system_u:object_r:cicap_log_t,s0)
+
+/run/c-icap/.*					gen_context(system_u:object_r:cicap_var_run_t,s0)
+/var/run/c-icap/.*				gen_context(system_u:object_r:cicap_var_run_t,s0)
+

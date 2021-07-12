@@ -1,0 +1,40 @@
+## <summary>policy for cicap</summary>
+
+########################################
+## <summary>
+##      Execute cicap_exec_t in the cicap domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##      Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`cicap_domtrans',`
+        gen_require(`
+                type cicap_t, cicap_exec_t;
+        ')
+
+        corecmd_search_bin($1)
+        domtrans_pattern($1, cicap_exec_t, cicap_t)
+')
+
+######################################
+## <summary>
+##      Execute cicap in the caller domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`cicap_exec',`
+        gen_require(`
+                type cicap_exec_t;
+        ')
+
+        corecmd_search_bin($1)
+        can_exec($1, cicap_exec_t)
+')
+

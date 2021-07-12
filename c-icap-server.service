@@ -1,0 +1,23 @@
+[Unit]
+Description=ICAP server c-icap-server
+After=network-online.target clamd@scan.service
+Wants=network-online.target clamd@scan.service
+
+[Service]
+Type=simple
+User=c-icap
+Group=c-icap
+TimeoutSec=5min
+TimeoutStartSec=0
+IgnoreSIGPIPE=no
+KillMode=process
+GuessMainPID=no
+RemainAfterExit=yes
+PIDFile=/var/run/c-icap/c-icap.pid
+EnvironmentFile=/etc/sysconfig/c-icap-server
+WorkingDirectory=/opt/home/c-icap
+ExecStart=/usr/sbin/c-icap -f $CONFIGFILE $OPTIONS
+
+[Install]
+WantedBy=multi-user.target
+

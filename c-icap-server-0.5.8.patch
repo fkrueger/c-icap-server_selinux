@@ -1,0 +1,111 @@
+diff -uNr c_icap-0.5.8/c-icap.conf.in c_icap-0.5.8-rh/c-icap.conf.in
+--- c_icap-0.5.8/c-icap.conf.in	2020-09-14 16:17:26.000000000 +0200
++++ c_icap-0.5.8-rh/c-icap.conf.in	2021-07-11 22:40:38.962000000 +0200
+@@ -18,7 +18,7 @@
+ #	The path of file to use as control socket for c-icap
+ # Default:
+ #	CommandsSocket /var/run/c-icap/c-icap.ctl
+-CommandsSocket /var/run/c-icap/c-icap.ctl
++CommandsSocket /run/c-icap/c-icap.ctl
+ 
+ # TAG: Timeout
+ # Format: Timeout seconds
+@@ -205,7 +205,7 @@
+ # Default:
+ #	No value
+ # Example:
+-#	User wwwrun
++User c-icap
+ 
+ # TAG: Group
+ # Format: Group groupname
+@@ -215,7 +215,7 @@
+ # Default:
+ #	No value
+ # Example:
+-#	Group nogroup
++#       Group nobody
+ 
+ # TAG: ServerAdmin
+ # Format: ServerAdmin admin_mail
+@@ -594,6 +594,12 @@
+ #	None set
+ # Example:
+ #	LogFormat myFormat "%tl, %a %im %iu %is %I %O %Ib %Ob %{10}bph"
++#
++# For debugging:
++#       LogFormat myFormat "%tl: a=%a la=%la lp=%lp >a=%>a <A=%<A ts=%ts tl=%tl tg=%tg >ho=%>ho huo=%huo <ho=%<ho iu=%iu im=%im is=%is >ih=%>ih <ih=%<ih Ih=%Ih Oh=%Oh Ib=%Ib Ob=%Ob I=%I O=%O bph=%bph un=%un Sl=%Sl"
++#
++#       Hint: You can use the following c-icap-client call to get meaningful filename info in the logfile:
++#export SCAN_FNAME="/bin/bash"; c-icap-client -i <hostname> -p 1344 -s virus_scan -method RESPMOD -f "$SCAN_FNAME" -req "file://$SCAN_FNAME"
+ 
+ # TAG: ServerLog
+ # Format: ServerLog LogFile
+@@ -602,8 +608,8 @@
+ #	store debugging information, errors and other
+ #	information about the c-icap server.
+ # Default:
+-#	ServerLog @prefix@/var/log/server.log
+-ServerLog @prefix@/var/log/server.log
++#	ServerLog /var/log/server.log
++ServerLog /var/log/c-icap/c-icap_server.log
+ 
+ # TAG: AccessLog
+ # Format: AccessLog LogFile [LogFormat] [[!]acl1] [[!]acl2] [...]
+@@ -615,10 +621,10 @@
+ #	This directive can be used more than once to specify more than
+ #	one access log files
+ # Default:
+-#	AccessLog @prefix@/var/log/access.log
++#	AccessLog /var/log/access.log
+ # Example:
+-#	AccessLog @prefix@/var/log/access.log MyFormat all
+-AccessLog @prefix@/var/log/access.log
++#	AccessLog /var/log/access.log MyFormat all
++AccessLog /var/log/c-icap/c-icap_access.log
+ 
+ # TAG: Logger
+ # Format: Logger LoggerName
+@@ -864,3 +870,10 @@
+ #	memcached.use_md5_keys on
+ 
+ # End module: memcached
++
++
++# Includes:
++
++#Include c-icap/virus_scan.conf
++
++
+diff -uNr c_icap-0.5.8/Makefile.am c_icap-0.5.8-rh/Makefile.am
+--- c_icap-0.5.8/Makefile.am	2018-11-09 10:42:02.000000000 +0100
++++ c_icap-0.5.8-rh/Makefile.am	2021-07-11 21:26:54.141000000 +0200
+@@ -122,9 +122,9 @@
+ 	if test ! -f $(DESTDIR)$(CONFIGDIR)/c-icap.magic; then $(INSTALL) $(srcdir)/c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic; fi
+ 	$(mkinstalldirs)  $(DESTDIR)$(LOGDIR);
+ 	$(mkinstalldirs)  $(DESTDIR)$(SOCKDIR);
+-	chgrp nogroup $(DESTDIR)$(LOGDIR) || echo -e "*********\nWARNING! Can not set group for the log dir $(DESTDIR)$(LOGDIR)\n*********\n"
++	chgrp nobody $(DESTDIR)$(LOGDIR) || echo -e "*********\nWARNING! Can not set group for the log dir $(DESTDIR)$(LOGDIR)\n*********\n"
+ 	chmod 775 $(DESTDIR)$(LOGDIR)
+-	chgrp nogroup $(DESTDIR)$(SOCKDIR) || echo -e "*********\nWARNING! Can not set group for the c-icap socket store dir $(DESTDIR)$(SOCKDIR)\n\n*********\n"
++	chgrp c-icap $(DESTDIR)$(SOCKDIR) || echo -e "*********\nWARNING! Can not set group for the c-icap socket store dir $(DESTDIR)$(SOCKDIR)\n\n*********\n"
+ 	chmod 775 $(DESTDIR)$(SOCKDIR)
+ 
+ EXTRA_DIST = RECONF config-w32.h makefile.w32 \
+diff -uNr c_icap-0.5.8/Makefile.in c_icap-0.5.8-rh/Makefile.in
+--- c_icap-0.5.8/Makefile.in	2021-03-01 12:47:11.000000000 +0100
++++ c_icap-0.5.8-rh/Makefile.in	2021-07-11 21:26:54.142000000 +0200
+@@ -1836,10 +1836,10 @@
+ 	if test ! -f $(DESTDIR)$(CONFIGDIR)/c-icap.magic; then $(INSTALL) $(srcdir)/c-icap.magic $(DESTDIR)$(CONFIGDIR)/c-icap.magic; fi
+ 	$(mkinstalldirs)  $(DESTDIR)$(LOGDIR);
+ 	$(mkinstalldirs)  $(DESTDIR)$(SOCKDIR);
+-	chgrp nogroup $(DESTDIR)$(LOGDIR) || echo -e "*********\nWARNING! Can not set group for the log dir $(DESTDIR)$(LOGDIR)\n*********\n"
++	chgrp nobody $(DESTDIR)$(LOGDIR) || echo -e "*********\nWARNING! Can not set group for the log dir $(DESTDIR)$(LOGDIR)\n*********\n"
+ 	chmod 775 $(DESTDIR)$(LOGDIR)
+-	chgrp nogroup $(DESTDIR)$(SOCKDIR) || echo -e "*********\nWARNING! Can not set group for the c-icap socket store dir $(DESTDIR)$(SOCKDIR)\n\n*********\n"
+-	chmod 775 $(DESTDIR)$(SOCKDIR)
++	chgrp c-icap $(DESTDIR)$(SOCKDIR) || echo -e "*********\nWARNING! Can not set group for the c-icap socket store dir $(DESTDIR)$(SOCKDIR)\n\n*********\n"
++	chmod 2775 $(DESTDIR)$(SOCKDIR)
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
