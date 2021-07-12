@@ -8,5 +8,8 @@ For the future I might add a seboolean (getsebool -a -> setsebool -P something=o
 
 Other than that it should run straight out of the box.
 
+# Finished RPMs
+You can find the finished RPMs in my small repository under https://dev.techno.holics.at/technoholics-repo/
+
 # Cheers!
 
