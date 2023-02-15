@@ -1,12 +1,16 @@
-policy_module(cicap, 20210711.1.1)
+policy_module(cicap, 20210713.1.4)
 
 require {
 	type antivirus_t;
 	type antivirus_var_run_t;
 	type init_t;
+	type logrotate_t;
+        type rpm_script_t;
 	type setfiles_t;
 	type tmp_t;
 	type setroubleshootd_t;
+	type system_cronjob_t;
+	type systemd_tmpfiles_t;
 	type unconfined_t;
 	type unconfined_service_t;
 	class udp_socket { connect create getattr read setopt write };					# clamd UDP
@@ -71,6 +75,10 @@ manage_fifo_files_pattern(cicap_t, cicap_var_run_t, cicap_var_run_t)
 
 ## perms for clamav/clamd via fifo_file / socket
 
+auth_read_passwd_file(cicap_t)
+dbus_system_bus_client(cicap_t)
+sssd_stream_connect(cicap_t)
+
 allow antivirus_t cicap_tmp_t:file { getattr open read };
 fs_associate_tmpfs(antivirus_var_run_t)
 search_dirs_pattern(cicap_t, antivirus_var_run_t, antivirus_var_run_t)
@@ -121,6 +129,12 @@ getattr_dirs_pattern(setroubleshootd_t, cicap_all_types, cicap_all_types)
 search_dirs_pattern(setroubleshootd_t, cicap_all_types, cicap_all_types)
 getattr_files_pattern(setroubleshootd_t, cicap_all_types, cicap_all_types)
 read_files_pattern(setroubleshootd_t, cicap_all_types, cicap_all_types)
+
+## rpm_script_t
+getattr_dirs_pattern(rpm_script_t, cicap_all_types, cicap_all_types)
+search_dirs_pattern(rpm_script_t, cicap_all_types, cicap_all_types)
+getattr_files_pattern(rpm_script_t, cicap_all_types, cicap_all_types)
+
 
 ## init_t
 manage_dirs_pattern(init_t, cicap_all_types, cicap_all_types)
@@ -185,5 +199,21 @@ relabelto_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
 relabelto_fifo_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
 relabelto_lnk_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
 relabelto_sock_files_pattern(unconfined_service_t, cicap_all_types, cicap_all_types)
+
+
+## systemd_tmpfiles_t does see our files in /tmp, too.
+getattr_dirs_pattern(systemd_tmpfiles_t, cicap_tmp_t, cicap_tmp_t)
+search_dirs_pattern(systemd_tmpfiles_t, cicap_tmp_t, cicap_tmp_t)
+manage_dirs_pattern(systemd_tmpfiles_t, cicap_tmp_t, cicap_tmp_t)
+manage_files_pattern(systemd_tmpfiles_t, cicap_tmp_t, cicap_tmp_t)
+
+## logrotate_t
+manage_dirs_pattern(logrotate_t, cicap_log_t, cicap_log_t)
+manage_files_pattern(logrotate_t, cicap_log_t, cicap_log_t)
+
+## system_cronjob_t
+manage_dirs_pattern(system_cronjob_t, cicap_all_types, cicap_all_types)
+manage_files_pattern(system_cronjob_t, cicap_all_types, cicap_all_types)
+manage_fifo_files_pattern(system_cronjob_t, cicap_all_types, cicap_all_types)
 
 

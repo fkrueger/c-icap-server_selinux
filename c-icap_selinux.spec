@@ -2,7 +2,7 @@
 
 Name: c-icap-server_selinux
 Version: 0.5.8
-Release: 1%{dist}
+Release: 5%{dist}
 Summary: SELinux policy module for c-icap-server
 
 %define selinux_policyver 3.14.3-1
@@ -29,12 +29,7 @@ Source1: c-icap-server_selinux.fc
 Source2: c-icap-server_selinux.if
 Source3: c-icap-server_selinux-readme.md
 
-BuildRequires: libtool, bzip2-devel, libdb-devel, libmemcached-devel, openldap-devel, pcre-devel, zlib-devel, doxygen
-%if 0%{?fedora} >= 26
-BuildRequires: compat-openssl10-devel
-%else
-BuildRequires: openssl-devel
-%endif
+BuildRequires: libtool, bzip2-devel, libdb-devel, openldap-devel, pcre-devel, zlib-devel, doxygen, libmemcached
 
 %description
 This package installs and sets up the SELinux policy module for the c-icap-server package.
@@ -125,6 +120,18 @@ exit 0
 %doc %{_defaultdocdir}/%{name}-%{version}/readme.md
 
 %changelog
+* Wed Feb 15 2023 Frederic Krueger <fkrueger-dev-cicap@holics.at> 0.5.8-5
+- updated policy for newly added weirdness around rpm_script_t
+
+* Tue Aug 31 2021 Frederic Krueger <fkrueger-dev-cicap@holics.at> 0.5.8-4
+- added system_cronjob_t support
+
+* Tue Aug 10 2021 Frederic Krueger <fkrueger-dev-cicap@holics.at> - 0.5.8-3
+- added systemd_tmpfiles_t getattr/search dirs
+
+* Sat Jul 17 2021 Frederic Krueger <fkrueger-dev-cicap@holics.at> - 0.5.8-2
+- Removed needless dependencies
+
 * Mon Jul 12 2021 Frederic Krueger <fkrueger-dev-cicap@holics.at> - 0.5.8-1
 - Initial package
 
